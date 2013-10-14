@@ -13,6 +13,11 @@ my $box_indicator = 0;
 my %labels;
 my @sections;
 
+
+# Note: Things to change in the manual:
+# REMOVE: H.df <- genind2df(H3N2) this chunk
+# RENAME: nancy_example_show
+
 open (RNW, "$ARGV[0]");
 
 while ($line = <RNW>){
