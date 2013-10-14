@@ -22,7 +22,6 @@ while ($line = <RNW>){
 	
 	if ($line =~ m/^\\label\{(.+?)\}$/){
 			my @matches = ($line =~ m/^\\label\{(.+?)\}$/g);
-			#$line =~ s/^\\label\{(.+?)\}$/\<a id\="$1"\>\<\/a\>\$\$/g;
 			foreach (@matches){
 				$labels{$_} = $eq_count++;
 				print "$labels{$_}\n";
@@ -65,11 +64,11 @@ while ($line = <RNW>){
 	$line =~ s/^\s*?\\((begin)|(end)|(newpage)).*?$//;
 
 	# Sections
-	if ($line =~ s/\\section\{(.+?)\}/# $1/){
+	if ($line =~ s/\\section\{(.+?)\}\s*\\label\{(.+?)\}/# $1/){
 		close (RMD);
-		my @section = split /\s/, $1;
-		open (RMD, ">$out[0]_$section[0].Rmd");
-		print "\nSection: $1\n"
+		my $section = $2;
+		open (RMD, ">$section.Rmd");
+		print "\nSection: $1\tFile: $section.Rmd\n"
 	}
 	$line =~ s/\\subsection\{(.+?)\}/## $1/;
 	$line =~ s/\\subsubsection\{(.+?)\}/### $1/;
