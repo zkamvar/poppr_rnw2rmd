@@ -1,0 +1,5 @@
+*.Rmd
+*.Rnw
+*.html
+*.Rhistory
+*.md
