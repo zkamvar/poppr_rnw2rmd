@@ -63,7 +63,7 @@ while ($line = <RNW>){
 			$line =~ s/^\\label\{(.+?)\}$/\<a id\="$1"\>\<\/a\>\$\$/g;
 			foreach (@matches){
 				$labels{$_} = $eq_count++;
-				print "$labels{$1}\n";
+				print "$labels{$_}\n";
 			}
 	}
 	$line =~ s/\\label\{(.+?)\}/\<a id\="$1"\>\<\/a\>/;
