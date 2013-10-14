@@ -43,7 +43,7 @@ while ($line = <RNW>){
 	}
 	$line =~ s/\\subsection\{(.+?)\}/## $1/;
 	$line =~ s/\\subsubsection\{(.+?)\}/### $1/;
-	$line =~ s/\\label.+?$//;
+	$line =~ s/\\label\{(.+?)\}/\<a id\="$1"\>\<\/a\>/;
 
 	# Removing useless items.
 	$line =~ s/\\(\{|\_|\$|\%|\&|\})/$1/g;
