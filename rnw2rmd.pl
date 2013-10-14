@@ -8,8 +8,10 @@ my $sec_count = 0;
 my $sub_count = 0;
 my $subsub_count = 0;
 my $eq_count = 1;
+my $box_indicator = 0;
 
 my %labels;
+my @sections;
 
 open (RNW, "$ARGV[0]");
 
@@ -17,6 +19,7 @@ while ($line = <RNW>){
 	chomp $line;
 	if ($line =~ m/^\\s\w+?tion\{(.+?)\}\s*\\label\{(.+?)\}/){
 		$labels{$2} = $1;
+		$sections[$sec_count++] = $1;
 		print "$labels{$2}\n";
 	}
 	
@@ -48,8 +51,11 @@ while ($line = <RNW>){
 
 	# Changing text formatting, Itallic, Bold, and Teletype
 	$line =~ s/\\textit\{(.+?)\}/*$1*/g;
+	$line =~ s/\\emph\{(.+?)\}/*$1*/g;
 	$line =~ s/\\textbf\{(.+?)\}/**$1**/g;
 	$line =~ s/\\texttt\{(.+?)\}/`$1`/g;
+	$line =~ s/\\textsc\{(.+?)\}/**$1**/g;
+	$line =~ s/(hide)/'$1'/g;
 
 	# URL handling.
 	$line =~ s/\\url\{(.+?)\}/[$1]($1)/g;
@@ -65,9 +71,9 @@ while ($line = <RNW>){
 
 	# Sections
 	if ($line =~ s/\\section\{(.+?)\}\s*\\label\{(.+?)\}/# $1/){
-		close (RMD);
+		#close (RMD);
 		my $section = $2;
-		open (RMD, ">$section.Rmd");
+		#open (RMD, ">$section.Rmd");
 		print "\nSection: $1\tFile: $section.Rmd\n"
 	}
 	$line =~ s/\\subsection\{(.+?)\}/## $1/;
@@ -79,7 +85,7 @@ while ($line = <RNW>){
 
 	if ($line =~ s/\\ref\{(.+?)\}/[$labels{$1}](#$1)/){
 		my @matches = ($line =~ m/\\ref\{(.+?)\}/g);
-		foreach (@matches){
+		for (@matches){
 			$line =~ s/\\ref\{($_)\}/[$labels{$1}](#$1)/g;
 		}
 	}
@@ -97,7 +103,35 @@ while ($line = <RNW>){
 	# Footnotes.
 	$line =~ s/\\footnote{(.+?)}/\[\\\*\]\(\/ "$1"\)/g;
 
-	print RMD "$line\n";
+	# style options
+	$line =~ s/(\\large)|(\\footnotesize)|(\\centering)//g;
+	$line =~ s/^\s*\\caption\{(.+?)\}/\> $1\n/;
+	if($line =~ m/^\s*\\includegraphics\{(.+?)\}/){
+		my $image = $1;
+		if ($image =~ m/png$/){
+			$line =~ s/^\s*\\includegraphics\{(.+?)\}/![$1]($1)/;
+		} else {
+			$line =~ s/^\s*\\includegraphics\{(.+?)\}/![$1]($1.png)/;
+		}
+	}
+	$line =~ s/(echo\s*\=\s*FALSE)/$1\, message \= FALSE/;
+	$line =~ s/^\\setkeys\{Gin\}.+?$//;
+	$line =~ s/\\hspace.+?$//;
+
+
+	if ($box_indicator == 0){
+		if ($line =~ m/\\fcolorbox/){
+			$box_indicator = 1;
+		}
+		else{
+			print RMD "$line\n";
+		}
+	} elsif ($line =~ m/^\s*\}$/) {
+		$box_indicator = 0;
+	} else {
+		print RMD "> $line\n";
+	}
+	
 }
 
 close (RNW);
