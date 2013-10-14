@@ -17,6 +17,7 @@ my @sections;
 # Note: Things to change in the manual:
 # REMOVE: H.df <- genind2df(H3N2) this chunk
 # RENAME: nancy_example_show
+# images: <img src="drawing.jpg" alt="Drawing" style="width: 200px;"></img>
 
 open (RNW, "$ARGV[0]");
 
