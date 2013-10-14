@@ -7,6 +7,9 @@ my $line;
 my $sec_count = 0;
 my $sub_count = 0;
 my $subsub_count = 0;
+my $eq_count = 1;
+
+my %labels;
 
 open (RNW, "$ARGV[0]");
 
@@ -35,29 +38,50 @@ while ($line = <RNW>){
 	# Comments.
 	$line =~ s/^%(.+?)$/<!--$1-->/;
 
-	# Sections
-	if ($line =~ s/\\section\{(.+?)\}/# $1/){
-		close (RMD);
-		my @section = split /\s/, $1;
-		open (RMD, ">$out[0]_$section[0].Rmd");
-	}
-	$line =~ s/\\subsection\{(.+?)\}/## $1/;
-	$line =~ s/\\subsubsection\{(.+?)\}/### $1/;
-	$line =~ s/(^\#+?\s)(.+?)\\label\{(.+?)\}/$1 \<a id\="$3"\>\<\/a\>$2/;
-
 	# Removing useless items.
 	$line =~ s/\\(\{|\_|\$|\%|\&|\})/$1/g;
 	$line =~ s/\\\\//g;
 	$line =~ s/\\tab//g;
 	$line =~ s/^\s*?\\((begin)|(end)|(newpage)).*?$//;
 
+	# Sections
+	if ($line =~ s/\\section\{(.+?)\}/# $1/){
+		close (RMD);
+		my @section = split /\s/, $1;
+		open (RMD, ">$out[0]_$section[0].Rmd");
+		print "\nSection: $1\n"
+	}
+	$line =~ s/\\subsection\{(.+?)\}/## $1/;
+	$line =~ s/\\subsubsection\{(.+?)\}/### $1/;
+	if ($line =~ s/(^\#+?\s)(.+?)\\label\{(.+?)\}/$1 \<a id\="$3"\>\<\/a\>$2/){
+		$labels{$3} = $2;
+		print "$labels{$3}\n";
+	}
+	
+	if ($line =~ m/^\\label\{(.+?)\}$/){
+			my @matches = ($line =~ m/^\\label\{(.+?)\}$/g);
+			$line =~ s/^\\label\{(.+?)\}$/\<a id\="$1"\>\<\/a\>\$\$/g;
+			foreach (@matches){
+				$labels{$_} = $eq_count++;
+				print "$labels{$1}\n";
+			}
+	}
+	$line =~ s/\\label\{(.+?)\}/\<a id\="$1"\>\<\/a\>/;
+
+	if ($line =~ s/\\ref\{(.+?)\}/[$labels{$1}](#$1)/){
+		my @matches = ($line =~ m/\\ref\{(.+?)\}/g);
+		foreach (@matches){
+			$line =~ s/\\ref\{($_)\}/[$labels{$1}](#$1)/g;
+		}
+	}
+
 	# Dealing with itemize.
 	$line =~ s/^\s*\\item(.+?)$/ -$1/;
-	$line =~ s/^\s*\-\s*\[\s*(\\\w+?\b)*(\s*.+?)\](.+?)/ - **$2**$3/;
+	$line =~ s/^\s*\-\s*\[\s*(\\\w+?\b)*\s*(.+?)\s*\](.+?)/ - **$2**$3/;
 
 	# Equations.
 	$line =~ s/\$\\geq\$/&ge;/g;
-	$line =~ s/\\beq/\$\$/;
+	$line =~ s/\\beq//;
 	$line =~ s/\\eeq/\$\$/;
 	$line =~ s/\\bar r_d/\\bar{r}_d/g;
 
@@ -69,3 +93,8 @@ while ($line = <RNW>){
 
 close (RNW);
 close (RMD);
+
+
+
+
+
