@@ -13,6 +13,26 @@ my %labels;
 
 open (RNW, "$ARGV[0]");
 
+while ($line = <RNW>){
+	chomp $line;
+	if ($line =~ m/^\\s\w+?tion\{(.+?)\}\s*\\label\{(.+?)\}/){
+		$labels{$2} = $1;
+		print "$labels{$2}\n";
+	}
+	
+	if ($line =~ m/^\\label\{(.+?)\}$/){
+			my @matches = ($line =~ m/^\\label\{(.+?)\}$/g);
+			#$line =~ s/^\\label\{(.+?)\}$/\<a id\="$1"\>\<\/a\>\$\$/g;
+			foreach (@matches){
+				$labels{$_} = $eq_count++;
+				print "$labels{$_}\n";
+			}
+	}
+}
+
+close (RNW);
+open (RNW, "$ARGV[0]");
+
 my @out = split /\./, $ARGV[0];
 
 open (RMD, ">$out[0].Rmd");
@@ -53,19 +73,9 @@ while ($line = <RNW>){
 	}
 	$line =~ s/\\subsection\{(.+?)\}/## $1/;
 	$line =~ s/\\subsubsection\{(.+?)\}/### $1/;
-	if ($line =~ s/(^\#+?\s)(.+?)\\label\{(.+?)\}/$1 \<a id\="$3"\>\<\/a\>$2/){
-		$labels{$3} = $2;
-		print "$labels{$3}\n";
-	}
+	$line =~ s/(^\#+?\s)(.+?)\\label\{(.+?)\}/$1 \<a id\="$3"\>\<\/a\>$2/;
 	
-	if ($line =~ m/^\\label\{(.+?)\}$/){
-			my @matches = ($line =~ m/^\\label\{(.+?)\}$/g);
-			$line =~ s/^\\label\{(.+?)\}$/\<a id\="$1"\>\<\/a\>\$\$/g;
-			foreach (@matches){
-				$labels{$_} = $eq_count++;
-				print "$labels{$_}\n";
-			}
-	}
+	$line =~ s/^\\label\{(.+?)\}$/\<a id\="$1"\>\<\/a\>\$\$/g;
 	$line =~ s/\\label\{(.+?)\}/\<a id\="$1"\>\<\/a\>/;
 
 	if ($line =~ s/\\ref\{(.+?)\}/[$labels{$1}](#$1)/){
