@@ -29,8 +29,8 @@ while ($line = <RNW>){
 	chomp $line;
 	if ($line =~ m/^\\s\w+?tion\{(.+?)\}\s*\\label\{(.+?)\}/){
 		$labels{$2} = $1;
-		$sections[$sec_count++] = $1;
-		# print "$labels{$2}\n";
+		$sections[$sec_count++] = $2;
+		# print "$labels{$sections[$sec_count - 1]}: $sections[$sec_count - 1]\n";
 	}
 	
 	if ($line =~ m/^\\label\{(.+?)\}$/){
@@ -52,6 +52,27 @@ open (RMD, ">$out[0].Rmd");
 while ($line = <RNW>){
 	chomp $line;
 
+
+	# Preamble
+	$line =~ s/\\title\{(.+?)\}$/$1\n=======\n/;
+	if ($line =~ m/\\author/){
+		$line = 'Zhian N. Kamvar<sup>1</sup> and Niklaus J. Gr&uuml;nwald<sup>1,2</sup>'."\n\n".
+		'1) Department of Botany and Plant Pathology, Oregon State University, Corvallis, OR'."\t".
+		'2) Horticultural Crops Research Laboratory, USDA-ARS, Corvallis, OR';
+	}
+	$line =~ s/\\begin\{abstract\}/# Abstract/;
+	$line =~ s/\\end\{abstract\}//;
+	$line =~ s/\\hyperset.+?$/***/;
+	if ($line =~ m/\\tableofcontents/){
+		print RMD "# Table of contents\n";
+		foreach my $item (@sections){
+			my $title = $labels{$item};
+			$title =~ s/\\(\{|\})/$1/g;
+			print RMD "### [$title](#$item)\n";
+		}
+		print RMD "***\n";
+		$line = "";
+	}
 	# Quotations.
 	$line =~ s/``(.+?)\"/"$1"/g;
 
@@ -135,6 +156,9 @@ while ($line = <RNW>){
 
 	# Output handling. No messages printed.
 	$line =~ s/(echo\s*\=\s*FALSE)/$1\, message \= FALSE/;
+
+	# Citations
+	$line =~ s/\\cite\{(.+?)\}/`r citep(bib[["$1"]])`/g;
 
 	# Information boxes becoming block quotes.
 	if ($box_indicator == 0){
