@@ -9,6 +9,7 @@ my $sub_count = 0;
 my $subsub_count = 0;
 my $eq_count = 1;
 my $box_indicator = 0;
+my $tt_indicator = 0;
 
 my %labels;
 my @sections;
@@ -17,23 +18,26 @@ my @sections;
 # Note: Things to change in the manual:
 # REMOVE: H.df <- genind2df(H3N2) this chunk
 # RENAME: nancy_example_show
-# images: <img src="drawing.jpg" alt="Drawing" style="width: 200px;"></img>
+# RbarD equation: remove substack.
+
 
 open (RNW, "$ARGV[0]");
 
+
+# Looping over the file first to collect labels of sections. 
 while ($line = <RNW>){
 	chomp $line;
 	if ($line =~ m/^\\s\w+?tion\{(.+?)\}\s*\\label\{(.+?)\}/){
 		$labels{$2} = $1;
 		$sections[$sec_count++] = $1;
-		print "$labels{$2}\n";
+		# print "$labels{$2}\n";
 	}
 	
 	if ($line =~ m/^\\label\{(.+?)\}$/){
 			my @matches = ($line =~ m/^\\label\{(.+?)\}$/g);
 			foreach (@matches){
 				$labels{$_} = $eq_count++;
-				print "$labels{$_}\n";
+				# print "$labels{$_}\n";
 			}
 	}
 }
@@ -74,6 +78,8 @@ while ($line = <RNW>){
 	$line =~ s/\\\\//g;
 	$line =~ s/\\tab//g;
 	$line =~ s/^\s*?\\((begin)|(end)|(newpage)).*?$//;
+	$line =~ s/^\\setkeys\{Gin\}.+?$//;
+	$line =~ s/\\hspace.+?$//;
 
 	# Sections
 	if ($line =~ s/\\section\{(.+?)\}\s*\\label\{(.+?)\}/# $1/){
@@ -84,11 +90,15 @@ while ($line = <RNW>){
 	}
 	$line =~ s/\\subsection\{(.+?)\}/## $1/;
 	$line =~ s/\\subsubsection\{(.+?)\}/### $1/;
+
+	# Section Labels
 	$line =~ s/(^\#+?\s)(.+?)\\label\{(.+?)\}/$1 \<a id\="$3"\>\<\/a\>$2/;
-	
+
+	# Other Labels	
 	$line =~ s/^\\label\{(.+?)\}$/\<a id\="$1"\>\<\/a\>\$\$/g;
 	$line =~ s/\\label\{(.+?)\}/\<a id\="$1"\>\<\/a\>/;
 
+	# Formatting references so that they actually link to the sections in html.
 	if ($line =~ s/\\ref\{(.+?)\}/[$labels{$1}](#$1)/){
 		my @matches = ($line =~ m/\\ref\{(.+?)\}/g);
 		for (@matches){
@@ -106,25 +116,27 @@ while ($line = <RNW>){
 	$line =~ s/\\eeq/\$\$/;
 	$line =~ s/\\bar r_d/\\bar{r}_d/g;
 
-	# Footnotes.
+	# Footnotes become hover items.
 	$line =~ s/\\footnote{(.+?)}/\[\\\*\]\(\/ "$1"\)/g;
 
 	# style options
 	$line =~ s/(\\large)|(\\footnotesize)|(\\centering)//g;
-	$line =~ s/^\s*\\caption\{(.+?)\}/\> $1\n/;
+	$line =~ s/^\s*\\caption\{(.+?)\}$/\> $1\n/;
+
+	# Image handling. 
 	if($line =~ m/^\s*\\includegraphics\{(.+?)\}/){
 		my $image = $1;
 		if ($image =~ m/png$/){
-			$line =~ s/^\s*\\includegraphics\{(.+?)\}/![$1]($1)/;
+			$line =~ s/^\s*\\includegraphics\{(.+?)\}/\<img src="$1" style\="width\: 500px\;"\>\<\/img\>/;
 		} else {
-			$line =~ s/^\s*\\includegraphics\{(.+?)\}/![$1]($1.png)/;
+			$line =~ s/^\s*\\includegraphics\{(.+?)\}/\<img src="$1.png" style\="width\: 500px\;"\>\<\/img\>/;
 		}
 	}
+
+	# Output handling. No messages printed.
 	$line =~ s/(echo\s*\=\s*FALSE)/$1\, message \= FALSE/;
-	$line =~ s/^\\setkeys\{Gin\}.+?$//;
-	$line =~ s/\\hspace.+?$//;
 
-
+	# Information boxes becoming block quotes.
 	if ($box_indicator == 0){
 		if ($line =~ m/\\fcolorbox/){
 			$box_indicator = 1;
