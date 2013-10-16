@@ -85,11 +85,21 @@ while ($line = <RNW>){
 	if ($line =~ m/\\tableofcontents/){
 		print RMD "# Table of contents\n";
 		foreach my $item (@sections){
+			# The labels are based on a hierarchy of colons sec:subsec:subsubsec
+			my @hierarchy = ($item =~ m/\:/g);
+			my $hierarchy_num = (@hierarchy);
 			my $title = $labels{$item};
 			$title =~ s/\\(\{|\})/$1/g;
-			print RMD "### [$title](#$item)\n";
+			if ($hierarchy_num == 0){
+				print RMD " - <h3>[$title](#$item)<\/h3>\n";
+			} elsif ($hierarchy_num == 1){
+				print RMD "    - [$title](#$item)\n";
+			} elsif ($hierarchy_num == 2){
+				print RMD "        - [$title](#$item)\n";
+			}
+			
 		}
-		print RMD "***\n";
+		print RMD "\n***\n";
 		$line = "";
 	}
 
