@@ -1,26 +1,31 @@
 #!/usr/bin/perl
 
+#==============================================================================#
+# Program to convert Sweave (*.Rnw) formatted files to Rmarkdown (*Rmd).
+# 
+# A lot of the Latex crap needs to be deleted at the beginning and between
+# The Abstract and Introduction.
+# 
+# Of course, all figures and bibtex files need to be in the same directory. 
+#==============================================================================#
+
 use warnings;
 use strict;
 
 my $line;
 my $sec_count = 0;
-my $sub_count = 0;
-my $subsub_count = 0;
 my $eq_count = 1;
 my $box_indicator = 0;
 my $tt_indicator = 0;
+my $bib = "";
 
 my %labels;
 my @sections;
 
-
-# Note: Things to change in the manual:
-# REMOVE: H.df <- genind2df(H3N2) this chunk
-# RENAME: nancy_example_show
-# RbarD equation: remove substack.
-
-
+if (!$ARGV[0]){
+	&usage();
+	exit -1
+}
 open (RNW, "$ARGV[0]");
 
 
@@ -39,6 +44,12 @@ while ($line = <RNW>){
 				$labels{$_} = $eq_count++;
 				# print "$labels{$_}\n";
 			}
+	}
+	if ($line =~ m/\\bibliography\{(.+?)\}/){
+		$bib = $1;
+		if ($bib !~ m/\.bib$/){
+			$bib = $bib.".bib";
+		}
 	}
 }
 
@@ -61,7 +72,12 @@ while ($line = <RNW>){
 		'2) Horticultural Crops Research Laboratory, USDA-ARS, Corvallis, OR';
 	}
 	$line =~ s/\\begin\{abstract\}/# Abstract/;
-	$line =~ s/\\end\{abstract\}//;
+	if ($line =~ s/\\end\{abstract\}//){
+		$line = '```{r, echo = FALSE, message = FALSE}'."\n".
+		'library(knitcitations)'."\n".
+		'bib <- read.bibtex("'.$bib.'")'."\n".
+		'```';
+	}
 	$line =~ s/\\hyperset.+?$/***/;
 	if ($line =~ m/\\tableofcontents/){
 		print RMD "# Table of contents\n";
@@ -128,6 +144,7 @@ while ($line = <RNW>){
 	}
 
 	# Dealing with itemize.
+	$line =~ s/^\s*\\item\{(.+?)\}/ - $1/;
 	$line =~ s/^\s*\\item(.+?)$/ -$1/;
 	$line =~ s/^\s*\-\s*\[\s*(\\\w+?\b)*\s*(.+?)\s*\](.+?)/ - **$2**$3/;
 
@@ -160,6 +177,14 @@ while ($line = <RNW>){
 	# Citations
 	$line =~ s/\\cite\{(.+?)\}/`r citep(bib[["$1"]])`/g;
 
+	# Bibliography
+	if ($line =~ m/\\bibliography\{(.+?)\}/){
+		$line = 
+		'# Bibliography'."\n".
+		'```{r, echo = FALSE, results = "asis"}'."\n".
+		'bibliography("html")'."\n".
+		'```';
+	}
 	# Information boxes becoming block quotes.
 	if ($box_indicator == 0){
 		if ($line =~ m/\\fcolorbox/){
@@ -180,6 +205,18 @@ close (RNW);
 close (RMD);
 
 
+sub usage {
+	print STDERR "\n$0 Version 0.0.1, Copyright (C) Zhian N. Kamvar \n";
+	print STDERR "$0 software comes with no warranty\n";
+	print STDERR <<EOF;
+	NAME
+	$0 converts Sweave documents to Rmarkdown.
+	USAGE
+	$0 <infile.Rnw>
+	OUTPUT
+	<outfile.Rmd>
 
+EOF
+}
 
 
