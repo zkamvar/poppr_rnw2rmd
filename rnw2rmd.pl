@@ -3,31 +3,34 @@
 #==============================================================================#
 # Program to convert Sweave (*.Rnw) formatted files to Rmarkdown (*Rmd).
 # 
-# A lot of the Latex crap needs to be deleted at the beginning and between
-# The Abstract and Introduction.
-# 
-# Of course, all figures and bibtex files need to be in the same directory. 
+# All figures and bibtex files need to be in the same directory. 
 #==============================================================================#
 
 use warnings;
 use strict;
 
+if (!$ARGV[0]){
+	&usage();
+	exit -1
+}
+
 my $line;
-my $sec_count = 0;
-my $eq_count = 1;
-my $box_indicator = 0;
-my $tt_indicator = 0;
+my @out = split /\./, $ARGV[0];
+
+# Counters for labels.
+my $sec_count = 0; # Sections
+my $eq_count = 1;  # Equations
+
+# Indicators for printing
+my $latex_indicator = 1; # latex preamble
+my $box_indicator = 0;   # boxquotes
+my $tt_indicator = 0;    # multiline teletype
 my $bib = "";
 
 my %labels;
 my @sections;
 
-if (!$ARGV[0]){
-	&usage();
-	exit -1
-}
 open (RNW, "$ARGV[0]");
-
 
 # Looping over the file first to collect labels of sections. 
 while ($line = <RNW>){
@@ -55,23 +58,23 @@ while ($line = <RNW>){
 
 close (RNW);
 open (RNW, "$ARGV[0]");
-
-my @out = split /\./, $ARGV[0];
-
 open (RMD, ">$out[0].Rmd");
 
 while ($line = <RNW>){
 	chomp $line;
 
-
 	# Preamble
-	$line =~ s/\\title\{(.+?)\}$/$1\n=======\n/;
+	if ($line =~ s/\\title\{(.+?)\}$/$1\n=======\n/){
+		$latex_indicator = 0;
+	}
 	if ($line =~ m/\\author/){
 		$line = 'Zhian N. Kamvar<sup>1</sup> and Niklaus J. Gr&uuml;nwald<sup>1,2</sup>'."\n\n".
 		'1) Department of Botany and Plant Pathology, Oregon State University, Corvallis, OR'."\t".
 		'2) Horticultural Crops Research Laboratory, USDA-ARS, Corvallis, OR';
 	}
-	$line =~ s/\\begin\{abstract\}/# Abstract/;
+	if ($line =~ s/\\begin\{abstract\}/# Abstract/){
+		$latex_indicator = 0;
+	}
 	if ($line =~ s/\\end\{abstract\}//){
 		$line = '```{r, echo = FALSE, message = FALSE}'."\n".
 		'library(knitcitations)'."\n".
@@ -89,6 +92,7 @@ while ($line = <RNW>){
 		print RMD "***\n";
 		$line = "";
 	}
+
 	# Quotations.
 	$line =~ s/``(.+?)\"/"$1"/g;
 
@@ -119,7 +123,7 @@ while ($line = <RNW>){
 	$line =~ s/\\hspace.+?$//;
 
 	# Sections
-	if ($line =~ s/\\section\{(.+?)\}\s*\\label\{(.+?)\}/# $1/){
+	if ($line =~ s/\\section\{(.+?)\}\s*\\label\{(.+?)\}/# \<a id\="$2"\>\<\/a\>$1/){
 		#close (RMD);
 		my $section = $2;
 		#open (RMD, ">$section.Rmd");
@@ -185,20 +189,24 @@ while ($line = <RNW>){
 		'bibliography("html")'."\n".
 		'```';
 	}
+
 	# Information boxes becoming block quotes.
-	if ($box_indicator == 0){
-		if ($line =~ m/\\fcolorbox/){
-			$box_indicator = 1;
+	if ($latex_indicator == 0){
+		if ($line =~ m/\n=======\n/){
+			$latex_indicator = 1;
 		}
-		else{
-			print RMD "$line\n";
+		if ($box_indicator == 0){
+			if ($line =~ m/\\fcolorbox/){
+				$box_indicator = 1;
+			} else {
+				print RMD "$line\n";
+			}
+		} elsif ($line =~ m/^\s*\}$/) {
+			$box_indicator = 0;
+		} else {
+			print RMD "> $line\n";
 		}
-	} elsif ($line =~ m/^\s*\}$/) {
-		$box_indicator = 0;
-	} else {
-		print RMD "> $line\n";
-	}
-	
+	}	
 }
 
 close (RNW);
