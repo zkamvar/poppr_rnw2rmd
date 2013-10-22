@@ -6,6 +6,7 @@ This perl script is explicitly written for the purposes of converting
 to an Rmarkdown (\*.Rmd) formatted file.
 
 Usage:
+
     ./rnw2rmd.pl poppr_manual.Rnw
 
 Your output will be `poppr_manual.Rmd`. The R command to create the HTML and md
