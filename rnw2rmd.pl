@@ -72,7 +72,7 @@ while ($line = <RNW>){
 		'1) Department of Botany and Plant Pathology, Oregon State University, Corvallis, OR'."\t".
 		'2) Horticultural Crops Research Laboratory, USDA-ARS, Corvallis, OR';
 	}
-	if ($line =~ s/\\begin\{abstract\}/# Abstract/){
+	if ($line =~ s/\\begin\{abstract\}/# Abstract\<a id="abstract"\>\<\/a\>/){
 		$latex_indicator = 0;
 	}
 	if ($line =~ s/\\end\{abstract\}//){
@@ -135,9 +135,10 @@ while ($line = <RNW>){
 	# Sections
 	if ($line =~ s/\\section\{(.+?)\}\s*\\label\{(.+?)\}/# \<a id\="$2"\>\<\/a\>$1/){
 		#close (RMD);
+		$line .= "\n".'[<sub>BACK TO HOME</sub>](#abstract)';
 		my $section = $2;
 		#open (RMD, ">$section.Rmd");
-		print "\nSection: $1\tFile: $section.Rmd\n"
+		print "\nSection: $1\tFile: $section.Rmd\n";
 	}
 	$line =~ s/\\subsection\{(.+?)\}/## $1/;
 	$line =~ s/\\subsubsection\{(.+?)\}/### $1/;
