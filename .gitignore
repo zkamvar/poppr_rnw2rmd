@@ -2,7 +2,6 @@
 *.Rnw
 *.html
 *.Rhistory
-*.md
 */
 
 .DS_Store
