@@ -11,6 +11,7 @@ Usage:
 
 Your output will be `poppr_manual.Rmd`. The R command to create the HTML and md
 files (provided you have the required packages listed below) is:
+
     R -e 'library(knitr); knit("poppr_manual.Rmd")'
 
 Required packages:
